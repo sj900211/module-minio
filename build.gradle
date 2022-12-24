@@ -1,0 +1,77 @@
+plugins {
+    id 'java'
+    id 'org.springframework.boot' version '2.7.7'
+    id 'io.spring.dependency-management' version '1.0.15.RELEASE'
+    id 'maven-publish'
+}
+
+group = 'run.freshr'
+version = '1.0.0.RELEASE'
+sourceCompatibility = '17'
+
+configurations {
+    compileOnly {
+        extendsFrom annotationProcessor
+    }
+}
+
+repositories {
+    maven {
+        url "${NEXUS_REPOSITORY}/maven-public/"
+    }
+}
+
+
+dependencies {
+    implementation 'org.springframework.boot:spring-boot-starter-web'
+    testImplementation 'org.springframework.boot:spring-boot-starter-test'
+
+    annotationProcessor 'org.springframework.boot:spring-boot-configuration-processor'
+
+    compileOnly 'org.projectlombok:lombok'
+    annotationProcessor 'org.projectlombok:lombok'
+
+    implementation 'org.springframework.boot:spring-boot-autoconfigure'
+
+    compileOnly 'com.google.auto.service:auto-service:1.0.1'
+    annotationProcessor 'com.google.auto.service:auto-service:1.0.1'
+
+    implementation 'io.minio:minio:8.4.6'
+
+    implementation 'run.freshr:utils:1.0.0.RELEASE'
+}
+
+test {
+    useJUnitPlatform()
+}
+
+bootJar {
+    enabled = false
+}
+
+jar {
+    enabled = true
+    archiveClassifier = ''
+}
+
+publishing {
+    publications {
+        maven(MavenPublication) {
+            artifact("build/libs/$rootProject.name-$version"+".jar") {
+                extension 'jar'
+            }
+        }
+    }
+
+    repositories {
+        maven {
+            url = version.endsWith('SNAPSHOT')
+                    ? "${NEXUS_REPOSITORY}/maven-snapshots/"
+                    : "${NEXUS_REPOSITORY}/maven-releases/"
+            credentials {
+                username "${NEXUS_USERNAME}"
+                password "${NEXUS_PASSWORD}"
+            }
+        }
+    }
+}
