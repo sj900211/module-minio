@@ -23,6 +23,8 @@ import io.minio.errors.InternalException;
 import io.minio.errors.InvalidResponseException;
 import io.minio.errors.ServerException;
 import io.minio.errors.XmlParserException;
+import java.io.File;
+import java.io.FileInputStream;
 import java.io.IOException;
 import java.io.InputStream;
 import java.net.URL;
@@ -169,6 +171,66 @@ public class MinioService {
     String date = "/" + now().format(ofPattern("yyyyMMdd")) + "/";
     String path = "/" + directory + date + save;
     String physical = properties.getPath() + path;
+    boolean except = checkExcept();
+
+    if (!except) {
+      InputStream inputStream = file.getInputStream();
+
+      PutObjectArgs putObjectArgs = PutObjectArgs.builder()
+          .bucket(bucketName)
+          .object(physical)
+          .stream(inputStream, inputStream.available(), -1)
+          .contentType(contentType)
+          .build();
+
+      minioClient.putObject(putObjectArgs);
+    }
+
+    return PutResultResponse
+        .builder()
+        .filename(filename)
+        .physical(physical)
+        .contentType(contentType)
+        .size(size)
+        .build();
+  }
+
+  /**
+   * Put.
+   *
+   * @param directory the directory
+   * @param file      the file
+   * @return the put result response
+   * @throws IOException               io exception
+   * @throws ServerException           server exception
+   * @throws InsufficientDataException insufficient data exception
+   * @throws ErrorResponseException    error response exception
+   * @throws NoSuchAlgorithmException  no such algorithm exception
+   * @throws InvalidKeyException       invalid key exception
+   * @throws InvalidResponseException  invalid response exception
+   * @throws XmlParserException        xml parser exception
+   * @throws InternalException         internal exception
+   * @apiNote 파일 업로드<br>
+   * 비즈니즈 로직 없음<br>
+   * 사용할 때 주의가 필요
+   * @author FreshR
+   * @since 2022. 12. 26. 오전 1:18:47
+   */
+  public PutResultResponse put(final String directory, final MultipartFile file) throws IOException,
+      ServerException, InsufficientDataException, ErrorResponseException, NoSuchAlgorithmException,
+      InvalidKeyException, InvalidResponseException, XmlParserException, InternalException {
+    log.info("MinioService.put");
+
+    String bucketName = properties.getBucket();
+    String contentType = file.getContentType();
+    String filename = file.getOriginalFilename();
+    Long size = of(file.getSize()).orElse(null);
+
+    if (!(!isNull(contentType) && !isNull(filename))) {
+      return null;
+    }
+
+    String physical = directory + "/" + filename;
     boolean except = checkExcept();
 
     if (!except) {
