@@ -23,8 +23,6 @@ import io.minio.errors.InternalException;
 import io.minio.errors.InvalidResponseException;
 import io.minio.errors.ServerException;
 import io.minio.errors.XmlParserException;
-import java.io.File;
-import java.io.FileInputStream;
 import java.io.IOException;
 import java.io.InputStream;
 import java.net.URL;
@@ -198,9 +196,9 @@ public class MinioService {
   /**
    * Put.
    *
-   * @param directory the directory
-   * @param file      the file
-   * @return the put result response
+   * @param contentType the content type
+   * @param physical    the physical
+   * @param inputStream the input stream
    * @throws IOException               io exception
    * @throws ServerException           server exception
    * @throws InsufficientDataException insufficient data exception
@@ -214,28 +212,23 @@ public class MinioService {
    * 비즈니즈 로직 없음<br>
    * 사용할 때 주의가 필요
    * @author FreshR
-   * @since 2022. 12. 26. 오전 1:18:47
+   * @since 2022. 12. 26. 오후 4:42:37
    */
-  public PutResultResponse put(final String directory, final MultipartFile file) throws IOException,
-      ServerException, InsufficientDataException, ErrorResponseException, NoSuchAlgorithmException,
-      InvalidKeyException, InvalidResponseException, XmlParserException, InternalException {
+  public void put(final String contentType, final String physical,
+      final InputStream inputStream) throws IOException, ServerException, InsufficientDataException,
+      ErrorResponseException, NoSuchAlgorithmException, InvalidKeyException,
+      InvalidResponseException, XmlParserException, InternalException {
     log.info("MinioService.put");
 
     String bucketName = properties.getBucket();
-    String contentType = file.getContentType();
-    String filename = file.getOriginalFilename();
-    Long size = of(file.getSize()).orElse(null);
 
-    if (!(!isNull(contentType) && !isNull(filename))) {
-      return null;
+    if (!(!isNull(contentType) && !isNull(physical))) {
+      throw new IOException();
     }
 
-    String physical = directory + "/" + filename;
     boolean except = checkExcept();
 
     if (!except) {
-      InputStream inputStream = file.getInputStream();
-
       PutObjectArgs putObjectArgs = PutObjectArgs.builder()
           .bucket(bucketName)
           .object(physical)
@@ -245,14 +238,6 @@ public class MinioService {
 
       minioClient.putObject(putObjectArgs);
     }
-
-    return PutResultResponse
-        .builder()
-        .filename(filename)
-        .physical(physical)
-        .contentType(contentType)
-        .size(size)
-        .build();
   }
 
   /**
