@@ -5,6 +5,7 @@ import static java.time.LocalDate.now;
 import static java.time.format.DateTimeFormatter.ofPattern;
 import static java.util.Objects.isNull;
 import static java.util.Optional.of;
+import static java.util.Optional.ofNullable;
 import static java.util.concurrent.TimeUnit.MINUTES;
 import static org.apache.tomcat.util.http.fileupload.FileUploadBase.ATTACHMENT;
 import static org.springframework.http.HttpStatus.OK;
@@ -168,7 +169,7 @@ public class MinioService {
     String save = uuid + "." + extension;
     String date = "/" + now().format(ofPattern("yyyyMMdd")) + "/";
     String path = "/" + directory + date + save;
-    String physical = properties.getPath() + path;
+    String physical = ofNullable(properties.getPath()).orElse("") + path;
     boolean except = checkExcept();
 
     if (!except) {
