@@ -1,14 +1,15 @@
 package run.freshr.service;
 
 import static io.minio.http.Method.GET;
+import static java.text.Normalizer.Form.NFC;
 import static java.time.LocalDate.now;
 import static java.time.format.DateTimeFormatter.ofPattern;
 import static java.util.Objects.isNull;
 import static java.util.Optional.of;
 import static java.util.Optional.ofNullable;
 import static java.util.concurrent.TimeUnit.MINUTES;
-import static org.apache.tomcat.util.http.fileupload.FileUploadBase.ATTACHMENT;
-import static org.springframework.http.HttpStatus.OK;
+import static org.springframework.http.CacheControl.noCache;
+import static org.springframework.http.HttpHeaders.CONTENT_DISPOSITION;
 import static org.springframework.http.MediaType.APPLICATION_OCTET_STREAM;
 import static org.springframework.util.StringUtils.getFilenameExtension;
 import static run.freshr.utils.CryptoUtil.encodeUrl;
@@ -29,6 +30,7 @@ import java.io.InputStream;
 import java.net.URL;
 import java.security.InvalidKeyException;
 import java.security.NoSuchAlgorithmException;
+import java.text.Normalizer;
 import java.util.Arrays;
 import java.util.List;
 import java.util.UUID;
@@ -37,7 +39,6 @@ import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.core.env.Environment;
 import org.springframework.core.io.Resource;
 import org.springframework.core.io.UrlResource;
-import org.springframework.http.HttpHeaders;
 import org.springframework.http.ResponseEntity;
 import org.springframework.stereotype.Service;
 import org.springframework.web.multipart.MultipartFile;
@@ -308,7 +309,7 @@ public class MinioService {
   /**
    * Download.
    *
-   * @param filename the filename
+   * @param originalName the filename
    * @param path     the path
    * @return the response entity
    * @throws IOException               io exception
@@ -324,19 +325,20 @@ public class MinioService {
    * @author FreshR
    * @since 2022. 12. 24. 오후 3:26:37
    */
-  public ResponseEntity<Resource> download(String filename, String path)
+  public ResponseEntity<Resource> download(String originalName, String path)
       throws IOException, ServerException, InsufficientDataException, ErrorResponseException,
       NoSuchAlgorithmException, InvalidKeyException, InvalidResponseException, XmlParserException,
       InternalException {
     URL resourceUrl = getUrl(path);
     Resource resource = new UrlResource(resourceUrl);
-    HttpHeaders httpHeaders = new HttpHeaders();
+    String filename = encodeUrl(Normalizer.normalize(originalName, NFC));
 
-    httpHeaders.setContentType(APPLICATION_OCTET_STREAM);
-    httpHeaders.setContentLength(resource.contentLength());
-    httpHeaders.setContentDispositionFormData(ATTACHMENT, encodeUrl(filename));
-
-    return new ResponseEntity<>(resource, httpHeaders, OK);
+    return ResponseEntity.ok()
+        .header(CONTENT_DISPOSITION, "attachment; filename=" + filename)
+        .contentType(APPLICATION_OCTET_STREAM)
+        .contentLength(resource.contentLength())
+        .cacheControl(noCache())
+        .body(resource);
   }
 
   /**
